@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Brave Steps</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap">
+<style>
+/* Layout: single-column phone-first practice app; tab bar on top, one calm card per task. Sage + ink, soft paper ground. */
+:root{
+  --bg:#f3f1ea; --card:#ffffff; --ink:#22302b; --muted:#66756f; --line:#dcd8cc;
+  --sage:#5f8b74; --sage-soft:#e3ece6; --warm:#c7774b; --warm-soft:#f6e6dc; --calm:#4d6f9b;
+  --display:'Young Serif',Georgia,serif; --body:'Nunito Sans',-apple-system,Helvetica,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141a18; --card:#1d2523; --ink:#e7ece9; --muted:#97a8a1; --line:#2f3a37;
+  --sage:#86b59b; --sage-soft:#22332b; --warm:#e09a70; --warm-soft:#3a2a22; --calm:#8fb0d9; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141a18; --card:#1d2523; --ink:#e7ece9; --muted:#97a8a1; --line:#2f3a37;
+  --sage:#86b59b; --sage-soft:#22332b; --warm:#e09a70; --warm-soft:#3a2a22; --calm:#8fb0d9; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+.wrap{max-width:620px;margin:0 auto;padding:12px 16px 40px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:6px 0 10px}
+h1{font-family:var(--display);font-weight:400;font-size:1.7rem;margin:0}
+.sub{color:var(--muted);font-size:.85rem}
+nav{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:2}
+nav button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:8px 14px;font:600 .88rem var(--body);cursor:pointer}
+nav button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+h2{font-family:var(--display);font-weight:400;font-size:1.25rem;margin:0 0 6px}
+h3{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+p{margin:.3em 0}
+.muted{color:var(--muted);font-size:.9rem}
+.btn{border:none;background:var(--sage);color:#fff;border-radius:10px;padding:10px 16px;font:700 .95rem var(--body);cursor:pointer}
+.btn.alt{background:var(--sage-soft);color:var(--ink)}
+.btn.warm{background:var(--warm)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+label{font-weight:600;font-size:.9rem;display:block;margin:10px 0 4px}
+textarea,input[type=text],select{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;background:var(--bg);color:var(--ink)}
+textarea{min-height:64px;resize:vertical}
+.scale{display:grid;grid-template-columns:repeat(11,1fr);gap:4px}
+.scale button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:8px 0;font:700 .85rem var(--body);cursor:pointer}
+.scale button.on{background:var(--warm);color:#fff;border-color:var(--warm)}
+.scale-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:.72rem;margin-top:2px}
+.step{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:start;padding:10px 0;border-top:1px solid var(--line)}
+.step:first-of-type{border-top:none}
+.num{width:28px;height:28px;border-radius:50%;background:var(--sage-soft);display:grid;place-items:center;font-weight:700;font-size:.85rem}
+.step.done .num{background:var(--sage);color:#fff}
+.chip{font-size:.75rem;padding:2px 8px;border-radius:999px;background:var(--warm-soft);color:var(--ink);white-space:nowrap}
+.timer{font-family:var(--display);font-size:3.2rem;text-align:center;margin:8px 0}
+.breath{width:150px;height:150px;border-radius:50%;margin:10px auto;background:var(--sage-soft);display:grid;place-items:center;font-weight:700;transition:transform 4s ease-in-out}
+.breath.in{transform:scale(1.25)}
+.list .item{border-top:1px solid var(--line);padding:8px 0;font-size:.9rem}
+.list .item:first-child{border-top:none}
+.note{border-left:4px solid var(--calm);padding:8px 12px;background:var(--sage-soft);border-radius:8px;font-size:.88rem}
+.crisis{font-size:.85rem;color:var(--muted);text-align:center;margin-top:18px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion: reduce){.breath{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Brave Steps</h1>
+  <span class="sub">small steps, every day</span>
+</header>
+<nav id="tabs">
+  <button data-t="today" class="on">Today</button>
+  <button data-t="ladders">Bravery ladders</button>
+  <button data-t="wait">Ride it out</button>
+  <button data-t="thoughts">Thought check</button>
+  <button data-t="calm">Calm skills</button>
+  <button data-t="log">My log</button>
+</nav>
+
+<!-- TODAY -->
+<section id="today">
+  <div class="card">
+    <h2>How anxious do you feel right now?</h2>
+    <p class="muted">0 = totally calm, 10 = the most anxious you've ever felt.</p>
+    <div class="scale" id="checkScale"></div>
+    <div class="scale-labels"><span>calm</span><span>very anxious</span></div>
+    <label for="checkNote">What's going on? (optional)</label>
+    <textarea id="checkNote" placeholder="e.g. lesson in an hour, argument this morning…"></textarea>
+    <div class="row" style="margin-top:10px"><button class="btn" id="checkSave">Save check-in</button><span class="muted" id="checkMsg"></span></div>
+  </div>
+  <div class="card">
+    <h2>Today's brave step</h2>
+    <div id="todayStep" class="muted">Pick a ladder in "Bravery ladders" and your next step shows up here.</div>
+  </div>
+  <div class="card note">
+    <strong>How this works.</strong> Anxiety shrinks when you face things in small steps and stay long enough for the feeling to come down, instead of escaping. Each time you do, your brain learns "I can handle this." Start small. Repeat a step until it feels easy, then move up.
+  </div>
+</section>
+
+<!-- LADDERS -->
+<section id="ladders" hidden>
+  <div class="card">
+    <h2>Bravery ladders</h2>
+    <p class="muted">Each ladder goes from easiest to hardest. Before a step, guess how anxious you'll be (0–10). After, rate how it really was. Most of the time, it's lower than you guessed.</p>
+    <label for="ladderPick">Choose a ladder</label>
+    <select id="ladderPick"></select>
+  </div>
+  <div class="card"><div id="ladderSteps"></div></div>
+  <div class="card" id="stepForm" hidden>
+    <h2 id="stepTitle">Step</h2>
+    <label>Before: how anxious do you think this will feel?</label>
+    <div class="scale" id="preScale"></div>
+    <label>After: how anxious did it actually feel at the worst point?</label>
+    <div class="scale" id="postScale"></div>
+    <label for="stepNote">What happened? What did you learn?</label>
+    <textarea id="stepNote"></textarea>
+    <div class="row" style="margin-top:10px"><button class="btn" id="stepSave">Save this try</button><button class="btn alt" id="stepCancel">Cancel</button></div>
+  </div>
+  <div class="card">
+    <h2>Make your own ladder</h2>
+    <label for="customName">Ladder name</label>
+    <input type="text" id="customName" placeholder="e.g. Singing the high part">
+    <label for="customSteps">Steps, easiest first (one per line)</label>
+    <textarea id="customSteps" style="min-height:120px"></textarea>
+    <div class="row" style="margin-top:10px"><button class="btn" id="customSave">Add ladder</button></div>
+  </div>
+</section>
+
+<!-- RIDE IT OUT -->
+<section id="wait" hidden>
+  <div class="card">
+    <h2>Ride it out</h2>
+    <p class="muted">When you feel the urge to escape (leave the room, grab your phone, quit the song, stay in bed), don't act on it yet. Wait it out with the timer. Urges rise, peak, and fall, usually within minutes.</p>
+    <label for="urgePick">What do you feel like doing?</label>
+    <select id="urgePick">
+      <option>Leave the room / walk away</option>
+      <option>Grab my phone</option>
+      <option>Quit the song or exercise</option>
+      <option>Stay in bed / shut down</option>
+      <option>Say something to get out of it</option>
+      <option>Other</option>
+    </select>
+    <label>How strong is the urge (0–10)?</label>
+    <div class="scale" id="urgeScale"></div>
+    <label for="urgeMin">Wait for</label>
+    <select id="urgeMin"><option value="2">2 minutes</option><option value="5" selected>5 minutes</option><option value="10">10 minutes</option></select>
+    <div class="timer" id="urgeTimer">5:00</div>
+    <div class="row" style="justify-content:center"><button class="btn warm" id="urgeStart">Start waiting</button><button class="btn alt" id="urgeStop" hidden>Stop</button></div>
+    <p class="muted" style="text-align:center;margin-top:8px">While you wait: slow breaths, out longer than in.</p>
+  </div>
+  <div class="card" id="urgeAfter" hidden>
+    <h2>How strong is the urge now?</h2>
+    <div class="scale" id="urgeAfterScale"></div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="urgeSave">Save</button></div>
+  </div>
+</section>
+
+<!-- THOUGHTS -->
+<section id="thoughts" hidden>
+  <div class="card">
+    <h2>Thought check</h2>
+    <p class="muted">Anxious thoughts often sound like facts. Write one down and check it.</p>
+    <label for="tSit">What happened?</label><textarea id="tSit" placeholder="e.g. My coach asked me to sing the line with more emotion."></textarea>
+    <label for="tThought">What went through my head?</label><textarea id="tThought" placeholder="e.g. If I try something different it will sound stupid."></textarea>
+    <label>How strongly do I believe it (0–10)?</label><div class="scale" id="tBelief"></div>
+    <label for="tFor">What supports it?</label><textarea id="tFor"></textarea>
+    <label for="tAgainst">What doesn't fit it? What would I tell a friend?</label><textarea id="tAgainst"></textarea>
+    <label for="tNew">A more balanced thought</label><textarea id="tNew" placeholder="e.g. Trying it a new way is how singers find their sound. One odd take isn't a big deal."></textarea>
+    <label>How strongly do I believe the original thought now (0–10)?</label><div class="scale" id="tBelief2"></div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="tSave">Save</button><span class="muted" id="tMsg"></span></div>
+  </div>
+  <div class="card note"><strong>Common thinking traps:</strong> all-or-nothing ("if it isn't perfect it's worthless"), mind-reading ("they think I'm bad"), fortune-telling ("it will go wrong"), catastrophizing ("this will ruin everything").</div>
+</section>
+
+<!-- CALM -->
+<section id="calm" hidden>
+  <div class="card">
+    <h2>Slow breathing</h2>
+    <p class="muted">In for 4, out for 6. Longer breaths out calm your body down. Try 2 minutes.</p>
+    <div class="breath" id="breathBall">ready</div>
+    <div class="row" style="justify-content:center"><button class="btn" id="breathBtn">Start</button></div>
+  </div>
+  <div class="card">
+    <h2>5-4-3-2-1 grounding</h2>
+    <p>Notice <strong>5</strong> things you can see, <strong>4</strong> you can feel, <strong>3</strong> you can hear, <strong>2</strong> you can smell, <strong>1</strong> you can taste. It pulls your attention out of the worry and into the room.</p>
+  </div>
+  <div class="card">
+    <h2>Cold water reset</h2>
+    <p>When a feeling is too big to think straight: splash cold water on your face or hold something cold for 30 seconds while breathing out slowly. It quickly lowers your body's alarm.</p>
+  </div>
+  <div class="card">
+    <h2>Name it to tame it</h2>
+    <p>Say to yourself: <em>"I'm feeling anxious. It's a feeling, it will pass, and I don't have to act on it."</em> Naming a feeling makes it smaller.</p>
+  </div>
+</section>
+
+<!-- LOG -->
+<section id="log" hidden>
+  <div class="card">
+    <h2>My log</h2>
+    <p class="muted">Everything saved here stays on this device only.</p>
+    <div class="list" id="logList"></div>
+  </div>
+  <div class="card">
+    <h2>Share with my therapist</h2>
+    <p class="muted">Copies your log as text so you can paste it into a message or show it in a session. You choose whether to share.</p>
+    <div class="row"><button class="btn alt" id="copyLog">Copy my log</button><span class="muted" id="copyMsg"></span></div>
+    <textarea id="copyBox" hidden style="margin-top:8px;min-height:120px"></textarea>
+  </div>
+</section>
+
+<p class="crisis">This app is practice between therapy sessions, not a replacement for a therapist. If you ever feel unsafe or think about hurting yourself, call or text <strong>988</strong> (Suicide &amp; Crisis Lifeline) any time.</p>
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const KEY='bravesteps_v1';
+let S={checkins:[],tries:[],urges:[],thoughts:[],custom:[],ladder:'sing',done:{}};
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s) S=Object.assign(S,s);}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const now=()=>new Date().toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+
+const LADDERS={
+ sing:{name:'Trying a line a new way (singing)',steps:[
+  'Sing one line two different ways, alone, without recording',
+  'Record one line three different ways (softer, breathier, stronger) and keep them private',
+  'Pick your favorite of the three and play it for someone at home',
+  'Send the three versions to your coach before the lesson',
+  'In a lesson, try a version your coach suggests on the spot, without stopping',
+  'Make up a small change of your own (a slide, a pause, a softer word) and sing it for your coach',
+  'Post a take that includes your own interpretation']},
+ seen:{name:'Being seen having fun',steps:[
+  'Hum along to a song in the car',
+  'Sing a chorus along with a song at home while someone is in the room',
+  'Record yourself swaying or moving while you practice (just for you)',
+  'Sing along with one friend to a song you both like',
+  'Sing or move along with a group (like friends on a bus)']},
+ talk:{name:'Staying in a hard conversation',steps:[
+  'When a talk gets hard, say "I need a 10-minute break" instead of walking off — then come back',
+  'Stay in the conversation for 2 minutes before taking a break',
+  'Stay for 5 minutes and say how you feel in one sentence',
+  'Say one true thing you would usually hide, even if it is uncomfortable',
+  'Start a hard conversation yourself instead of waiting for it']},
+ high:{name:'The high part of a song',steps:[
+  'Sing the high line on "ng" (like the end of "sing"), very lightly',
+  'Sing the high line on one vowel ("ah"), at half volume',
+  'Sing the high line with the words, still light and soft',
+  'Sing the whole chorus through once without stopping, even if it isn\'t perfect',
+  'Record the whole song start to finish, high parts included']},
+};
+function allLadders(){const o={...LADDERS}; S.custom.forEach((c,i)=>o['c'+i]={name:c.name,steps:c.steps}); return o;}
+
+function scale(el,val,cb){
+  el.innerHTML='';
+  for(let i=0;i<=10;i++){const b=document.createElement('button');b.type='button';b.textContent=i;
+    if(val===i)b.classList.add('on');
+    b.onclick=()=>{[...el.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');cb(i);};
+    el.appendChild(b);}
+}
+
+// tabs
+$('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  [...$('tabs').children].forEach(x=>x.classList.toggle('on',x===b));
+  ['today','ladders','wait','thoughts','calm','log'].forEach(t=>$(t).hidden=(t!==b.dataset.t));
+  if(b.dataset.t==='log')renderLog(); if(b.dataset.t==='today')renderToday();};
+
+// today
+let checkVal=null; scale($('checkScale'),null,v=>checkVal=v);
+$('checkSave').onclick=()=>{if(checkVal===null){$('checkMsg').textContent='Pick a number first.';return;}
+  S.checkins.push({t:now(),v:checkVal,n:$('checkNote').value.trim()});save();
+  $('checkMsg').textContent='Saved.';$('checkNote').value='';checkVal=null;scale($('checkScale'),null,v=>checkVal=v);};
+function nextStep(){const L=allLadders()[S.ladder]; if(!L)return null; const d=S.done[S.ladder]||[];
+  const i=L.steps.findIndex((_,k)=>!d.includes(k)); return i<0?null:{i,text:L.steps[i],name:L.name};}
+function renderToday(){const n=nextStep();
+  $('todayStep').innerHTML=n?`<p class="muted">${n.name}</p><p><strong>Step ${n.i+1}:</strong> ${n.text}</p>`:'You finished this ladder. Pick a new one, or make your own.';}
+
+// ladders
+function renderPick(){const L=allLadders();$('ladderPick').innerHTML=Object.entries(L).map(([k,v])=>`<option value="${k}" ${k===S.ladder?'selected':''}>${v.name}</option>`).join('');}
+let cur=null,pre=null,post=null;
+function renderSteps(){const L=allLadders()[S.ladder]; const d=S.done[S.ladder]||[];
+  $('ladderSteps').innerHTML='';
+  L.steps.forEach((t,i)=>{const tries=S.tries.filter(x=>x.l===S.ladder&&x.i===i);
+    const div=document.createElement('div');div.className='step'+(d.includes(i)?' done':'');
+    const last=tries[tries.length-1];
+    div.innerHTML=`<div class="num">${i+1}</div><div>${t}${tries.length?`<div class="muted">${tries.length} tr${tries.length>1?'ies':'y'} · last: guessed ${last.pre}, felt ${last.post}</div>`:''}</div>`;
+    const right=document.createElement('div');right.className='row';
+    const go=document.createElement('button');go.className='btn alt';go.textContent='Try';go.onclick=()=>openStep(i,t);
+    const ok=document.createElement('button');ok.className='btn alt';ok.textContent=d.includes(i)?'Undo':'Easy now';
+    ok.onclick=()=>{const arr=S.done[S.ladder]=S.done[S.ladder]||[];const k=arr.indexOf(i);k<0?arr.push(i):arr.splice(k,1);save();renderSteps();};
+    right.append(go,ok);div.appendChild(right);$('ladderSteps').appendChild(div);});}
+function openStep(i,t){cur=i;pre=post=null;$('stepTitle').textContent='Step '+(i+1)+': '+t;$('stepNote').value='';
+  scale($('preScale'),null,v=>pre=v);scale($('postScale'),null,v=>post=v);$('stepForm').hidden=false;$('stepForm').scrollIntoView({behavior:'smooth'});}
+$('stepCancel').onclick=()=>$('stepForm').hidden=true;
+$('stepSave').onclick=()=>{if(pre===null||post===null){alertBox('Rate before and after first.');return;}
+  S.tries.push({t:now(),l:S.ladder,i:cur,pre,post,n:$('stepNote').value.trim()});save();$('stepForm').hidden=true;renderSteps();};
+function alertBox(m){const el=$('stepTitle');const o=el.textContent;el.textContent=m;setTimeout(()=>el.textContent=o,1800);}
+$('ladderPick').onchange=e=>{S.ladder=e.target.value;save();renderSteps();};
+$('customSave').onclick=()=>{const n=$('customName').value.trim();const st=$('customSteps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!n||st.length<2)return;S.custom.push({name:n,steps:st});S.ladder='c'+(S.custom.length-1);save();
+  $('customName').value='';$('customSteps').value='';renderPick();renderSteps();};
+
+// ride it out
+let uV=null,uA=null,tm=null,left=0;
+scale($('urgeScale'),null,v=>uV=v);
+const fmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+$('urgeMin').onchange=()=>{$('urgeTimer').textContent=fmt(+$('urgeMin').value*60)};
+$('urgeStart').onclick=()=>{left=+$('urgeMin').value*60;$('urgeStart').hidden=true;$('urgeStop').hidden=false;$('urgeAfter').hidden=true;
+  tm=setInterval(()=>{left--;$('urgeTimer').textContent=fmt(Math.max(0,left));if(left<=0)finish();},1000);};
+function finish(){clearInterval(tm);$('urgeStart').hidden=false;$('urgeStop').hidden=true;$('urgeAfter').hidden=false;
+  scale($('urgeAfterScale'),null,v=>uA=v);$('urgeTimer').textContent='Done';}
+$('urgeStop').onclick=finish;
+$('urgeSave').onclick=()=>{S.urges.push({t:now(),u:$('urgePick').value,b:uV,a:uA});save();$('urgeAfter').hidden=true;
+  $('urgeTimer').textContent=fmt(+$('urgeMin').value*60);uV=uA=null;scale($('urgeScale'),null,v=>uV=v);};
+
+// thoughts
+let b1=null,b2=null;scale($('tBelief'),null,v=>b1=v);scale($('tBelief2'),null,v=>b2=v);
+$('tSave').onclick=()=>{const r={t:now(),s:$('tSit').value.trim(),th:$('tThought').value.trim(),b1,f:$('tFor').value.trim(),a:$('tAgainst').value.trim(),nw:$('tNew').value.trim(),b2};
+  if(!r.th){$('tMsg').textContent='Write the thought first.';return;}
+  S.thoughts.push(r);save();['tSit','tThought','tFor','tAgainst','tNew'].forEach(i=>$(i).value='');b1=b2=null;
+  scale($('tBelief'),null,v=>b1=v);scale($('tBelief2'),null,v=>b2=v);$('tMsg').textContent='Saved.';};
+
+// calm breathing
+let bt=null;
+$('breathBtn').onclick=()=>{const ball=$('breathBall');
+  if(bt){clearTimeout(bt);bt=null;ball.classList.remove('in');ball.textContent='ready';$('breathBtn').textContent='Start';return;}
+  $('breathBtn').textContent='Stop';let end=Date.now()+120000;
+  const cycle=()=>{if(Date.now()>end){ball.classList.remove('in');ball.textContent='well done';$('breathBtn').textContent='Start';bt=null;return;}
+    ball.classList.add('in');ball.textContent='breathe in';
+    bt=setTimeout(()=>{ball.classList.remove('in');ball.textContent='breathe out';bt=setTimeout(cycle,6000);},4000);};
+  cycle();};
+
+// log
+function renderLog(){const items=[];
+  S.checkins.forEach(c=>items.push({t:c.t,x:`Check-in: anxiety ${c.v}/10${c.n?' — '+c.n:''}`}));
+  S.tries.forEach(r=>{const L=allLadders()[r.l];items.push({t:r.t,x:`Brave step (${L?L.name:'ladder'} #${r.i+1}): guessed ${r.pre}, felt ${r.post}${r.n?' — '+r.n:''}`})});
+  S.urges.forEach(u=>items.push({t:u.t,x:`Rode out urge "${u.u}": ${u.b??'?'} → ${u.a??'?'}`}));
+  S.thoughts.forEach(r=>items.push({t:r.t,x:`Thought check: "${r.th}" ${r.b1??'?'}→${r.b2??'?'}${r.nw?' · new thought: '+r.nw:''}`}));
+  $('logList').innerHTML=items.length?items.slice().reverse().map(i=>`<div class="item"><span class="muted">${i.t}</span><br>${esc(i.x)}</div>`).join(''):'<p class="muted">Nothing yet. Your check-ins, brave steps and urges will show up here.</p>';
+  return items;}
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+$('copyLog').onclick=()=>{const txt=renderLog().map(i=>i.t+' — '+i.x).join('\n')||'(empty)';
+  const box=$('copyBox');
+  navigator.clipboard&&navigator.clipboard.writeText(txt).then(()=>{$('copyMsg').textContent='Copied.'},()=>{box.hidden=false;box.value=txt;box.select();$('copyMsg').textContent='Select and copy the text below.'})
+   || (box.hidden=false,box.value=txt,box.select());};
+
+renderPick();renderSteps();renderToday();
+})();
+</script>
+</body>
+</html>
