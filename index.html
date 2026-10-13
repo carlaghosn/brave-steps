@@ -93,6 +93,12 @@ textarea{min-height:64px;resize:vertical}
     <h2>Today's brave step</h2>
     <div id="todayStep" class="muted">Pick a ladder in "Bravery ladders" and your next step shows up here.</div>
   </div>
+  <div class="card">
+    <h2>Spontaneous idea</h2>
+    <p class="muted">Tap for a small, fun, unplanned thing to try today.</p>
+    <p id="sparkText" style="font-weight:700;margin:10px 0"></p>
+    <div class="row"><button class="btn alt" id="sparkBtn">Give me one</button><button class="btn" id="sparkDone">I did it</button><span class="muted" id="sparkMsg"></span></div>
+  </div>
   <div class="card note">
     <strong>How this works.</strong> Anxiety shrinks when you face things in small steps and stay long enough for the feeling to come down, instead of escaping. Each time you do, your brain learns "I can handle this." Start small. Repeat a step until it feels easy, then move up.
   </div>
@@ -251,6 +257,26 @@ const LADDERS={
   'Sing the high line with the words, still light and soft',
   'Sing the whole chorus through once without stopping, even if it isn\'t perfect',
   'Record the whole song start to finish, high parts included']},
+ move:{name:'Moving freely, just for fun',steps:[
+  'Tap your foot or nod your head to a song in the car',
+  'Dance a little in your seat to one song in the car',
+  'Dance for one full song alone in your room, no mirror, no recording',
+  'Dance in the kitchen to one song while someone is home',
+  'Dance spontaneously in the car with Mom to a song one of you picks',
+  'Join in when friends are dancing or singing (party, bus, sleepover)']},
+ yes:{name:'Saying yes to unplanned things',steps:[
+  'When someone suggests a small change (different snack, different route), say yes without arguing',
+  'Say yes to a short walk around the block when it is suggested',
+  'Try a food or drink you have never had',
+  'Say yes to a last-minute outing (beach, ice cream, a store) without planning it first',
+  'Say yes to "let\'s just go hiking" the same day it is suggested',
+  'Plan nothing for a free afternoon and decide one thing to do on the spot']},
+ flex:{name:'When plans change',steps:[
+  'Notice a small plan change and say "okay" out loud, even if you are annoyed',
+  'When a plan changes, rate how upset you are (0–10) and wait 5 minutes before reacting',
+  'Do the changed plan without complaining once',
+  'Suggest a new plan yourself when the first one falls through',
+  'Let someone else choose the plan for a whole afternoon']},
 };
 function allLadders(){const o={...LADDERS}; S.custom.forEach((c,i)=>o['c'+i]={name:c.name,steps:c.steps}); return o;}
 
@@ -354,6 +380,7 @@ function renderLog(){const items=[];
   S.checkins.forEach(c=>items.push({t:c.t,x:`Check-in: anxiety ${c.v}/10${c.n?' — '+c.n:''}`}));
   S.tries.forEach(r=>{const L=allLadders()[r.l];items.push({t:r.t,x:`Brave step (${L?L.name:'ladder'} #${r.i+1}): guessed ${r.pre}, felt ${r.post}${r.n?' — '+r.n:''}`})});
   S.urges.forEach(u=>items.push({t:u.t,x:`Rode out urge "${u.u}": ${u.b??'?'} → ${u.a??'?'}`}));
+  (S.sparks||[]).forEach(r=>items.push({t:r.t,x:'Spontaneous: '+r.x}));
   S.thoughts.forEach(r=>items.push({t:r.t,x:`Thought check: "${r.th}"${(r.tr||[]).length?' ['+r.tr.map(i=>TRAPS[i][0]).join(', ')+']':''} ${r.b1??'?'}→${r.b2??'?'}${r.nw?' · new thought: '+r.nw:''}`}));
   const tally={};S.thoughts.forEach(r=>(r.tr||[]).forEach(i=>tally[i]=(tally[i]||0)+1));
   const top=Object.entries(tally).sort((a,b)=>b[1]-a[1]).slice(0,2);
@@ -366,6 +393,10 @@ $('copyLog').onclick=()=>{const txt=renderLog().map(i=>i.t+' — '+i.x).join('\n
   navigator.clipboard&&navigator.clipboard.writeText(txt).then(()=>{$('copyMsg').textContent='Copied.'},()=>{box.hidden=false;box.value=txt;box.select();$('copyMsg').textContent='Select and copy the text below.'})
    || (box.hidden=false,box.value=txt,box.select());};
 
+const SPARK=['Dance to one song in the car','Go for a 20-minute walk or hike, no planning','Put on a song you love and dance in the kitchen','Take a different route home and look around','Sing along loudly to the radio with the windows down','Try a food you have never tried','Go to the beach and put your feet in the water','Call or text a friend and make a same-day plan','Do a silly dance for 30 seconds, eyes closed','Say yes to the next thing Mom suggests','Lie on the grass and watch clouds for 5 minutes','Make up a goofy song about your day','Have a 5-minute dance party with whoever is home','Walk barefoot outside for 2 minutes','Go somewhere you have never been in your neighborhood'];
+let spark=null;
+$('sparkBtn').onclick=()=>{let n;do{n=SPARK[Math.floor(Math.random()*SPARK.length)]}while(n===spark&&SPARK.length>1);spark=n;$('sparkText').textContent=n;$('sparkMsg').textContent='';};
+$('sparkDone').onclick=()=>{if(!spark)return;S.sparks=S.sparks||[];S.sparks.push({t:now(),x:spark});save();$('sparkMsg').textContent='Nice. Logged.';};
 renderPick();renderSteps();renderToday();
 })();
 </script>
