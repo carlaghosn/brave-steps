@@ -54,6 +54,10 @@ textarea{min-height:64px;resize:vertical}
 .list .item{border-top:1px solid var(--line);padding:8px 0;font-size:.9rem}
 .list .item:first-child{border-top:none}
 .note{border-left:4px solid var(--calm);padding:8px 12px;background:var(--sage-soft);border-radius:8px;font-size:.88rem}
+.traps{display:flex;flex-wrap:wrap;gap:6px}
+.traps button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;font:600 .82rem var(--body);cursor:pointer}
+.traps button.on{background:var(--calm);border-color:var(--calm);color:#fff}
+.trap{border-top:1px solid var(--line);padding:8px 0;font-size:.9rem}.trap:first-child{border-top:none}
 .crisis{font-size:.85rem;color:var(--muted);text-align:center;margin-top:18px}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion: reduce){.breath{transition:none}}
@@ -160,13 +164,15 @@ textarea{min-height:64px;resize:vertical}
     <label for="tSit">What happened?</label><textarea id="tSit" placeholder="e.g. My coach asked me to sing the line with more emotion."></textarea>
     <label for="tThought">What went through my head?</label><textarea id="tThought" placeholder="e.g. If I try something different it will sound stupid."></textarea>
     <label>How strongly do I believe it (0–10)?</label><div class="scale" id="tBelief"></div>
+    <label>Which thinking trap is it? (tap any that fit)</label>
+    <div class="traps" id="tTraps"></div>
     <label for="tFor">What supports it?</label><textarea id="tFor"></textarea>
     <label for="tAgainst">What doesn't fit it? What would I tell a friend?</label><textarea id="tAgainst"></textarea>
     <label for="tNew">A more balanced thought</label><textarea id="tNew" placeholder="e.g. Trying it a new way is how singers find their sound. One odd take isn't a big deal."></textarea>
     <label>How strongly do I believe the original thought now (0–10)?</label><div class="scale" id="tBelief2"></div>
     <div class="row" style="margin-top:10px"><button class="btn" id="tSave">Save</button><span class="muted" id="tMsg"></span></div>
   </div>
-  <div class="card note"><strong>Common thinking traps:</strong> all-or-nothing ("if it isn't perfect it's worthless"), mind-reading ("they think I'm bad"), fortune-telling ("it will go wrong"), catastrophizing ("this will ruin everything").</div>
+  <div class="card"><h2>The 10 thinking traps</h2><div id="trapList"></div></div>
 </section>
 
 <!-- CALM -->
@@ -311,10 +317,26 @@ $('urgeSave').onclick=()=>{S.urges.push({t:now(),u:$('urgePick').value,b:uV,a:uA
   $('urgeTimer').textContent=fmt(+$('urgeMin').value*60);uV=uA=null;scale($('urgeScale'),null,v=>uV=v);};
 
 // thoughts
+const TRAPS=[
+ ['All-or-nothing','Seeing things as total success or total failure, nothing in between.'],
+ ['Over-generalizing','One setback means it will always go wrong.'],
+ ['Mental filter','Focusing on one bad detail and ignoring the rest.'],
+ ['Discounting the positive','Good things "don\'t count."'],
+ ['Mind-reading / jumping to conclusions','Assuming what others think, or what will happen, without proof.'],
+ ['Catastrophizing','A small slip will lead to disaster.'],
+ ['Emotional reasoning','"I feel it, so it must be true."'],
+ ['Should / must','Rigid rules that bring guilt or anger when broken.'],
+ ['Labelling','Judging your whole self by one mistake ("I\'m a failure").'],
+ ['Personalizing / blaming','All of it is my fault, or all of it is someone else\'s.']];
+let picked=new Set();
+function renderTraps(){const el=$('tTraps');el.innerHTML='';TRAPS.forEach(([n],i)=>{const b=document.createElement('button');b.type='button';b.textContent=n;
+  if(picked.has(i))b.classList.add('on');b.onclick=()=>{picked.has(i)?picked.delete(i):picked.add(i);renderTraps();};el.appendChild(b);});}
+$('trapList').innerHTML=TRAPS.map(([n,d])=>`<div class="trap"><strong>${n}:</strong> ${d}</div>`).join('');
+renderTraps();
 let b1=null,b2=null;scale($('tBelief'),null,v=>b1=v);scale($('tBelief2'),null,v=>b2=v);
-$('tSave').onclick=()=>{const r={t:now(),s:$('tSit').value.trim(),th:$('tThought').value.trim(),b1,f:$('tFor').value.trim(),a:$('tAgainst').value.trim(),nw:$('tNew').value.trim(),b2};
+$('tSave').onclick=()=>{const r={t:now(),tr:[...picked],s:$('tSit').value.trim(),th:$('tThought').value.trim(),b1,f:$('tFor').value.trim(),a:$('tAgainst').value.trim(),nw:$('tNew').value.trim(),b2};
   if(!r.th){$('tMsg').textContent='Write the thought first.';return;}
-  S.thoughts.push(r);save();['tSit','tThought','tFor','tAgainst','tNew'].forEach(i=>$(i).value='');b1=b2=null;
+  S.thoughts.push(r);save();picked=new Set();renderTraps();['tSit','tThought','tFor','tAgainst','tNew'].forEach(i=>$(i).value='');b1=b2=null;
   scale($('tBelief'),null,v=>b1=v);scale($('tBelief2'),null,v=>b2=v);$('tMsg').textContent='Saved.';};
 
 // calm breathing
@@ -332,8 +354,11 @@ function renderLog(){const items=[];
   S.checkins.forEach(c=>items.push({t:c.t,x:`Check-in: anxiety ${c.v}/10${c.n?' — '+c.n:''}`}));
   S.tries.forEach(r=>{const L=allLadders()[r.l];items.push({t:r.t,x:`Brave step (${L?L.name:'ladder'} #${r.i+1}): guessed ${r.pre}, felt ${r.post}${r.n?' — '+r.n:''}`})});
   S.urges.forEach(u=>items.push({t:u.t,x:`Rode out urge "${u.u}": ${u.b??'?'} → ${u.a??'?'}`}));
-  S.thoughts.forEach(r=>items.push({t:r.t,x:`Thought check: "${r.th}" ${r.b1??'?'}→${r.b2??'?'}${r.nw?' · new thought: '+r.nw:''}`}));
-  $('logList').innerHTML=items.length?items.slice().reverse().map(i=>`<div class="item"><span class="muted">${i.t}</span><br>${esc(i.x)}</div>`).join(''):'<p class="muted">Nothing yet. Your check-ins, brave steps and urges will show up here.</p>';
+  S.thoughts.forEach(r=>items.push({t:r.t,x:`Thought check: "${r.th}"${(r.tr||[]).length?' ['+r.tr.map(i=>TRAPS[i][0]).join(', ')+']':''} ${r.b1??'?'}→${r.b2??'?'}${r.nw?' · new thought: '+r.nw:''}`}));
+  const tally={};S.thoughts.forEach(r=>(r.tr||[]).forEach(i=>tally[i]=(tally[i]||0)+1));
+  const top=Object.entries(tally).sort((a,b)=>b[1]-a[1]).slice(0,2);
+  const head=top.length?`<div class="item"><strong>My top thinking traps:</strong> ${top.map(([i,c])=>TRAPS[i][0]+' ('+c+')').join(', ')}</div>`:'';
+  $('logList').innerHTML=head+(items.length?items.slice().reverse().map(i=>`<div class="item"><span class="muted">${i.t}</span><br>${esc(i.x)}</div>`).join(''):'<p class="muted">Nothing yet. Your check-ins, brave steps and urges will show up here.</p>');
   return items;}
 function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 $('copyLog').onclick=()=>{const txt=renderLog().map(i=>i.t+' — '+i.x).join('\n')||'(empty)';
